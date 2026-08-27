@@ -2,8 +2,8 @@ import axios from "axios";
 
 const baseURL =
   typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_API_URL_LOCAL || "/api")
-    : (process.env.NEXT_PUBLIC_API_URL_PRODUCTION || "");
+    ? (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL_LOCAL || "/api")
+    : (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL_PRODUCTION || "");
 
 const api = axios.create({
   baseURL,
