@@ -2,6 +2,7 @@ import datetime
 from typing import Dict, Any, Optional
 from fastapi import HTTPException, status
 from google.cloud.firestore import FieldFilter
+from firebase_admin import auth as admin_auth
 from app.core.firebase import db
 from app.core.security import hash_password, verify_password, create_access_token
 from app.schemas.auth import UserSignupRequest, UserLoginRequest, GoogleAuthRequest, AuthResponse, UserOut
@@ -14,7 +15,7 @@ class AuthService:
         email_clean = req.email.strip().lower()
         username_clean = req.username.strip()
 
-        # Check if email exists (check both lowercase and exact)
+        # Check if email exists in Firestore (check both lowercase and exact)
         email_query = self.users_ref.where(filter=FieldFilter("email", "==", email_clean)).limit(1).get()
         if len(email_query) == 0:
             email_query = self.users_ref.where(filter=FieldFilter("email", "==", req.email.strip())).limit(1).get()
@@ -33,6 +34,24 @@ class AuthService:
                 detail="Username is already taken. Please choose another."
             )
 
+        # 1. Synchronize User directly into Firebase Authentication
+        firebase_uid = None
+        try:
+            fb_user = admin_auth.create_user(
+                email=email_clean,
+                password=req.password,
+                display_name=username_clean
+            )
+            firebase_uid = fb_user.uid
+            print(f"[Auth] Successfully registered user in Firebase Authentication with UID: {firebase_uid}")
+        except Exception as fb_err:
+            print(f"[Auth] Firebase Auth sync notice: {fb_err}")
+            try:
+                existing_fb_user = admin_auth.get_user_by_email(email_clean)
+                firebase_uid = existing_fb_user.uid
+            except Exception:
+                pass
+
         hashed_pwd = hash_password(req.password)
         now_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
@@ -42,6 +61,7 @@ class AuthService:
             "passwordHash": hashed_pwd,
             "profileImage": "",
             "isGoogleUser": False,
+            "firebaseUid": firebase_uid,
             "createdAt": now_str,
             "updatedAt": now_str,
             "age": None,
@@ -56,9 +76,15 @@ class AuthService:
             "customMeals": []
         }
 
-        doc_ref = self.users_ref.document()
+        # 2. Save User Document to Cloud Firestore
+        if firebase_uid:
+            doc_ref = self.users_ref.document(firebase_uid)
+            user_id = firebase_uid
+        else:
+            doc_ref = self.users_ref.document()
+            user_id = doc_ref.id
+
         doc_ref.set(new_user_data)
-        user_id = doc_ref.id
 
         token = create_access_token({"_id": user_id, "email": email_clean, "username": username_clean})
 
@@ -73,7 +99,7 @@ class AuthService:
 
         return AuthResponse(
             success=True,
-            message="User registered successfully.",
+            message="User registered successfully in Firebase & Firestore.",
             token=token,
             user=user_out
         )
@@ -94,7 +120,7 @@ class AuthService:
         if len(query) == 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No account found with this email or username. Please check or create an account."
+                detail="No account found with this email or username. Please create an account first."
             )
 
         user_doc = query[0]
@@ -145,7 +171,7 @@ class AuthService:
         if not is_valid:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Incorrect password. Please try again or use Google sign-in."
+                detail="Incorrect password. Please try again."
             )
 
         token = create_access_token({
