@@ -104,7 +104,15 @@ export default function Signup() {
       }
     } catch (error) {
       console.error("Google Signup Error:", error);
-      toast.error(error.response?.data?.message || "Google signup failed.");
+      if (error?.code === "auth/unauthorized-domain") {
+        toast.error("Domain not authorized in Firebase! Add your Cloudflare domain in Firebase Console > Authentication > Settings > Authorized domains.");
+      } else if (error?.code === "auth/popup-closed-by-user") {
+        toast.info("Google signup cancelled.");
+      } else if (error?.code === "auth/popup-blocked") {
+        toast.error("Popup blocked by browser. Please allow popups for this site.");
+      } else {
+        toast.error(error.response?.data?.message || error.message || "Google signup failed.");
+      }
     } finally {
       setGoogleLoading(false);
     }

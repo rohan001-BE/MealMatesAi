@@ -94,7 +94,15 @@ export default function Login() {
       }
     } catch (error) {
       console.error("Google Login Error:", error);
-      toast.error(error.response?.data?.message || "Google login failed.");
+      if (error?.code === "auth/unauthorized-domain") {
+        toast.error("Domain not authorized in Firebase! Add your Cloudflare domain in Firebase Console > Authentication > Settings > Authorized domains.");
+      } else if (error?.code === "auth/popup-closed-by-user") {
+        toast.info("Google login cancelled.");
+      } else if (error?.code === "auth/popup-blocked") {
+        toast.error("Popup blocked by browser. Please allow popups for this site.");
+      } else {
+        toast.error(error.response?.data?.message || error.message || "Google login failed.");
+      }
     } finally {
       setGoogleLoading(false);
     }
