@@ -364,6 +364,24 @@ export default function Home() {
                   {label}
                 </Link>
               ))}
+              {!user && (
+                <div className="pt-2.5 border-t border-white/10 flex gap-2">
+                  <Link
+                    href="/login"
+                    onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(false); }}
+                    className="flex-1 py-2 text-center text-xs font-bold text-white bg-white/10 hover:bg-orange-500 rounded-full border border-white/20 transition"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/signup"
+                    onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(false); }}
+                    className="flex-1 py-2 text-center text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-full transition"
+                  >
+                    Sign Up
+                  </Link>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

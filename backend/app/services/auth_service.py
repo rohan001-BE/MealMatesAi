@@ -11,16 +11,22 @@ class AuthService:
         self.users_ref = db.collection("users")
 
     def signup(self, req: UserSignupRequest) -> AuthResponse:
-        # Check if email exists
-        email_query = self.users_ref.where(filter=FieldFilter("email", "==", req.email.lower())).limit(1).get()
+        email_clean = req.email.strip().lower()
+        username_clean = req.username.strip()
+
+        # Check if email exists (check both lowercase and exact)
+        email_query = self.users_ref.where(filter=FieldFilter("email", "==", email_clean)).limit(1).get()
+        if len(email_query) == 0:
+            email_query = self.users_ref.where(filter=FieldFilter("email", "==", req.email.strip())).limit(1).get()
+
         if len(email_query) > 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="An account with this email already exists."
+                detail="An account with this email already exists. Please sign in instead."
             )
 
         # Check if username exists
-        user_query = self.users_ref.where(filter=FieldFilter("username", "==", req.username)).limit(1).get()
+        user_query = self.users_ref.where(filter=FieldFilter("username", "==", username_clean)).limit(1).get()
         if len(user_query) > 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -31,8 +37,8 @@ class AuthService:
         now_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
         new_user_data = {
-            "username": req.username,
-            "email": req.email.lower(),
+            "username": username_clean,
+            "email": email_clean,
             "passwordHash": hashed_pwd,
             "profileImage": "",
             "isGoogleUser": False,
@@ -54,12 +60,12 @@ class AuthService:
         doc_ref.set(new_user_data)
         user_id = doc_ref.id
 
-        token = create_access_token({"_id": user_id, "email": req.email.lower(), "username": req.username})
+        token = create_access_token({"_id": user_id, "email": email_clean, "username": username_clean})
 
         user_out = UserOut(
             id=user_id,
-            username=req.username,
-            email=req.email.lower(),
+            username=username_clean,
+            email=email_clean,
             profileImage="",
             isGoogleUser=False,
             createdAt=now_str
@@ -73,27 +79,73 @@ class AuthService:
         )
 
     def login(self, req: UserLoginRequest) -> AuthResponse:
-        query = self.users_ref.where(filter=FieldFilter("email", "==", req.email.lower())).limit(1).get()
+        input_identifier = req.email.strip()
+        email_lower = input_identifier.lower()
+
+        # Multi-strategy search: lowercase email, exact email, username
+        query = self.users_ref.where(filter=FieldFilter("email", "==", email_lower)).limit(1).get()
+        if len(query) == 0:
+            query = self.users_ref.where(filter=FieldFilter("email", "==", input_identifier)).limit(1).get()
+        if len(query) == 0:
+            query = self.users_ref.where(filter=FieldFilter("username", "==", input_identifier)).limit(1).get()
+        if len(query) == 0:
+            query = self.users_ref.where(filter=FieldFilter("username", "==", email_lower)).limit(1).get()
+
         if len(query) == 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid email or password."
+                detail="No account found with this email or username. Please check or create an account."
             )
 
         user_doc = query[0]
         user_data = user_doc.to_dict()
         user_id = user_doc.id
 
-        if user_data.get("isGoogleUser") and not user_data.get("passwordHash"):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="This account was registered with Google. Please use Google Login."
-            )
+        stored_hash = (
+            user_data.get("passwordHash")
+            or user_data.get("password")
+            or user_data.get("hashed_password")
+            or user_data.get("pwdHash")
+            or ""
+        )
 
-        if not verify_password(req.password, user_data.get("passwordHash", "")):
+        if not stored_hash:
+            if user_data.get("isGoogleUser"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="This account was registered with Google. Please click 'Continue with Google'."
+                )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid email or password."
+            )
+
+        is_valid = False
+
+        # 1. Standard bcrypt check
+        if stored_hash.startswith("$2"):
+            is_valid = verify_password(req.password, stored_hash)
+        # 2. Direct string equality (legacy plain text)
+        elif stored_hash == req.password:
+            is_valid = True
+            try:
+                # Upgrade to secure bcrypt hash
+                user_doc.reference.update({"passwordHash": hash_password(req.password)})
+            except Exception:
+                pass
+        # 3. Fallback passlib CryptContext
+        else:
+            try:
+                from passlib.context import CryptContext
+                pwd_ctx = CryptContext(schemes=["bcrypt", "pbkdf2_sha256", "sha256_crypt"], deprecated="auto")
+                is_valid = pwd_ctx.verify(req.password, stored_hash)
+            except Exception:
+                is_valid = (stored_hash == req.password)
+
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Incorrect password. Please try again or use Google sign-in."
             )
 
         token = create_access_token({
@@ -119,8 +171,11 @@ class AuthService:
         )
 
     def google_auth(self, req: GoogleAuthRequest) -> AuthResponse:
-        email_clean = req.email.lower()
+        email_clean = req.email.strip().lower()
         query = self.users_ref.where(filter=FieldFilter("email", "==", email_clean)).limit(1).get()
+        if len(query) == 0:
+            query = self.users_ref.where(filter=FieldFilter("email", "==", req.email.strip())).limit(1).get()
+
         now_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
         if len(query) > 0:
