@@ -1,9 +1,11 @@
 import axios from "axios";
 
+const defaultApiUrl = "https://mealmatesai.onrender.com/api";
+
 const baseURL =
   typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL_LOCAL || "/api")
-    : (process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_URL_PRODUCTION || "");
+    ? (process.env.NEXT_PUBLIC_API_URL || defaultApiUrl)
+    : (process.env.NEXT_PUBLIC_API_URL || defaultApiUrl);
 
 const api = axios.create({
   baseURL,
