@@ -36,6 +36,7 @@ import {
 import { Menu, X, ChevronRight } from "lucide-react";
 import { FiLogOut } from "react-icons/fi";
 import Footer from "../components/Footer";
+import UserAvatar from "../components/UserAvatar";
 
 const videoPaths = Array.from({ length: 13 }, (_, i) => `/videos/${i + 1}.mp4`);
 
@@ -434,13 +435,12 @@ export default function Home() {
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none" />
 
               <div className="flex items-center gap-3.5 relative z-10">
-                <img
-                  src={user?.profileImage || "/assets/default-profile.png"}
+                <UserAvatar
+                  src={user?.profileImage}
+                  name={user?.username}
+                  className="w-14 h-14 rounded-2xl border-2 border-white/80 shadow-md"
+                  textClassName="text-xl font-black text-white"
                   alt={user?.username || "Profile"}
-                  className="w-14 h-14 rounded-2xl object-cover border-2 border-white/80 shadow-md"
-                  onError={(e) => {
-                    e.target.src = "/assets/default-profile.png";
-                  }}
                 />
                 <div className="overflow-hidden flex-1">
                   <div className="flex items-center gap-1.5">
@@ -957,11 +957,12 @@ export default function Home() {
               {feedbacksToShow.map((fb, idx) => (
                 <div key={idx} className="px-3 h-full">
                   <div className="bg-white rounded-3xl p-7 border border-orange-100 shadow-md flex flex-col items-center text-center min-h-[300px] h-full">
-                    <img
-                      src={fb.profileImage || "/assets/default-profile.png"}
+                    <UserAvatar
+                      src={fb.profileImage}
+                      name={fb.username}
+                      className="w-20 h-20 rounded-full mx-auto mb-4 border-2 border-orange-200"
+                      textClassName="text-2xl font-black text-white"
                       alt={fb.username}
-                      className="w-20 h-20 rounded-full mx-auto mb-4 object-cover border-2 border-orange-200"
-                      onError={(e) => { e.target.src = "/assets/default-profile.png"; }}
                     />
                     <h3 className="text-base font-bold text-orange-500 mb-1">{fb.username}</h3>
                     {fb.email && <p className="text-xs text-gray-400 mb-3">{fb.email}</p>}

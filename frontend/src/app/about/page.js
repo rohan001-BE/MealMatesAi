@@ -13,6 +13,7 @@ import {
   FaUserMd,
   FaLaptopCode,
 } from "react-icons/fa";
+import UserAvatar from "../../components/UserAvatar";
 
 const teamMembers = [
   {
@@ -165,13 +166,12 @@ export default function AboutPage() {
                 className="bg-[#faf5ef] rounded-3xl p-8 flex flex-col items-center text-center border border-orange-100 shadow-sm hover:shadow-md transition-all space-y-4"
               >
                 <div className="relative">
-                  <img
+                  <UserAvatar
                     src={member.avatar}
+                    name={member.name}
+                    className="w-28 h-28 rounded-full border-4 border-orange-300 shadow-md"
+                    textClassName="text-3xl font-black text-white"
                     alt={member.name}
-                    className="w-28 h-28 rounded-full object-cover border-4 border-orange-300 shadow-md"
-                    onError={(e) => {
-                      e.target.src = "/assets/default-profile.png";
-                    }}
                   />
                   <div className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow border border-orange-100">
                     {member.icon}

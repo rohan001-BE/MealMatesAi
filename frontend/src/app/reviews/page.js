@@ -5,6 +5,7 @@ import api from "../../lib/api";
 import { toast } from "react-toastify";
 import useAuthStore from "../../store/authStore";
 import { FaStar, FaQuoteLeft, FaCheckCircle, FaPlus, FaTimes, FaPaperPlane } from "react-icons/fa";
+import UserAvatar from "../../components/UserAvatar";
 
 const fallbackReviews = [
   {
@@ -167,13 +168,12 @@ export default function ReviewsPage() {
               </div>
 
               <div className="flex items-center gap-3 pt-4 border-t border-orange-50">
-                <img
-                  src={rev.profileImage || "/assets/default-profile.png"}
+                <UserAvatar
+                  src={rev.profileImage}
+                  name={rev.username}
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 border-orange-200 shadow-xs shrink-0"
+                  textClassName="text-sm font-black text-white"
                   alt={rev.username}
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-orange-200 shadow-xs shrink-0"
-                  onError={(e) => {
-                    e.target.src = "/assets/default-profile.png";
-                  }}
                 />
                 <div className="min-w-0">
                   <h4 className="font-extrabold text-xs sm:text-sm text-gray-900 truncate">

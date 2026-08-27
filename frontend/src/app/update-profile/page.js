@@ -8,13 +8,11 @@ import useAuthStore from "../../store/authStore";
 import {
   FaUser,
   FaSave,
-  FaTrashAlt,
-  FaCamera,
-  FaTimesCircle,
   FaShieldAlt,
   FaHeartbeat,
   FaCheck,
 } from "react-icons/fa";
+import UserAvatar from "../../components/UserAvatar";
 
 export default function UpdateProfilePage() {
   const router = useRouter();
@@ -151,13 +149,12 @@ export default function UpdateProfilePage() {
       {/* Avatar Box */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 border border-orange-100 shadow-md flex flex-col sm:flex-row items-center gap-6">
         <div className="relative group">
-          <img
-            src={user?.profileImage || profileImage || "/assets/default-profile.png"}
+          <UserAvatar
+            src={user?.profileImage || profileImage}
+            name={user?.username}
+            className="w-24 h-24 rounded-full border-4 border-orange-200 shadow-md"
+            textClassName="text-3xl font-black text-white"
             alt={user?.username || "Profile"}
-            className="w-24 h-24 rounded-full object-cover border-4 border-orange-200 shadow-md"
-            onError={(e) => {
-              e.target.src = "/assets/default-profile.png";
-            }}
           />
           {uploading && (
             <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">

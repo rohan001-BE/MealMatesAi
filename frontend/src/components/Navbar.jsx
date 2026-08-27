@@ -4,9 +4,9 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, ChevronRight, Camera } from "lucide-react";
-import { toast } from "react-toastify";
 import useAuthStore from "../store/authStore";
 import { FiLogOut } from "react-icons/fi";
+import UserAvatar from "./UserAvatar";
 import {
   FaUtensils,
   FaSave,
@@ -254,13 +254,11 @@ export default function Navbar() {
                   }`}
                   aria-label="Open menu drawer"
                 >
-                  <img
-                    src={user?.profileImage || profileImage || "/assets/default-profile.png"}
-                    alt={user?.username || "Avatar"}
-                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-orange-400"
-                    onError={(e) => {
-                      e.target.src = "/assets/default-profile.png";
-                    }}
+                  <UserAvatar
+                    src={user?.profileImage || profileImage}
+                    name={user?.username}
+                    className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-orange-400"
+                    alt={user?.username || "User Avatar"}
                   />
                   <Menu className="w-5 h-5" />
                 </button>
@@ -354,13 +352,12 @@ export default function Navbar() {
                   className="cursor-pointer group relative shrink-0"
                   title="Click to update avatar"
                 >
-                  <img
-                    src={user?.profileImage || profileImage || "/assets/default-profile.png"}
+                  <UserAvatar
+                    src={user?.profileImage || profileImage}
+                    name={user?.username}
+                    className="w-14 h-14 rounded-2xl border-2 border-white/80 shadow-md transition-transform group-hover:scale-105"
+                    textClassName="text-xl font-black text-white"
                     alt={user?.username || "Profile"}
-                    className="w-14 h-14 rounded-2xl object-cover border-2 border-white/80 shadow-md transition-transform group-hover:scale-105"
-                    onError={(e) => {
-                      e.target.src = "/assets/default-profile.png";
-                    }}
                   />
                   <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-white text-orange-600 flex items-center justify-center shadow-xs">
                     <Camera size={10} />
