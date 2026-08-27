@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import api from "../../lib/api";
 import { toast } from "react-toastify";
 import useAuthStore from "../../store/authStore";
 import { auth, provider, signInWithPopup } from "../../config/firebaseConfig";
 import { FcGoogle } from "react-icons/fc";
-import { FiLogIn, FiEye, FiEyeOff, FiMail, FiLock, FiArrowRight } from "react-icons/fi";
+import { FiEye, FiEyeOff, FiMail, FiLock, FiArrowRight } from "react-icons/fi";
 
 const videoPaths = Array.from({ length: 13 }, (_, i) => `/videos/${i + 1}.mp4`);
 
@@ -23,8 +23,15 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [videoIndex, setVideoIndex] = useState(0);
 
+  // Auto-rotating video slider
   useEffect(() => {
-    setVideoIndex(Math.floor(Math.random() * videoPaths.length));
+    const timer = setInterval(() => {
+      setVideoIndex((prev) => (prev + 1) % videoPaths.length);
+    }, 7000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     if (isAuthenticated) {
       router.replace("/");
     }
@@ -64,6 +71,10 @@ export default function Login() {
   };
 
   const handleGoogleLogin = async () => {
+    if (!auth || !provider) {
+      toast.error("Google authentication service is initializing. Please try email login or try again in a moment.");
+      return;
+    }
     setGoogleLoading(true);
     try {
       const result = await signInWithPopup(auth, provider);
@@ -91,27 +102,35 @@ export default function Login() {
 
   return (
     <main className="h-screen w-screen flex flex-col md:flex-row overflow-hidden bg-[#faf5ef]">
-      {/* Left Side: Brand Showcase Video with Centered Logo */}
-      <section className="hidden md:flex w-1/2 h-full relative items-center justify-center p-12 overflow-hidden bg-black">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover opacity-45 scale-105 transition-transform duration-10000"
-          src={videoPaths[videoIndex]}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/75 z-0"></div>
+      {/* Left Side: Brand Showcase Video Slider with Centered Logo */}
+      <section className="hidden md:flex w-1/2 h-full relative items-center justify-center p-12 overflow-hidden bg-black select-none">
+        <AnimatePresence mode="wait">
+          <motion.video
+            key={videoPaths[videoIndex]}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.55 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.2 }}
+            autoPlay
+            muted
+            playsInline
+            onEnded={() => setVideoIndex((prev) => (prev + 1) % videoPaths.length)}
+            className="absolute inset-0 w-full h-full object-cover scale-105"
+            src={videoPaths[videoIndex]}
+          />
+        </AnimatePresence>
+        
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/80 z-10 pointer-events-none"></div>
 
         {/* Centered Brand Experience */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="relative z-10 flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-6"
+          className="relative z-20 flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-6"
         >
           {/* Glowing Circular Logo Emblem */}
-          <div className="relative group">
+          <Link href="/" className="relative group cursor-pointer block">
             <div className="absolute -inset-3 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400 rounded-full blur-2xl opacity-70 group-hover:opacity-100 transition duration-1000 animate-pulse"></div>
             <img
               src="/assets/logo.png"
@@ -121,7 +140,7 @@ export default function Login() {
                 e.target.src = "/assets/full logo.png";
               }}
             />
-          </div>
+          </Link>
 
           {/* Centered Brand Title with Superscript AI */}
           <div>
@@ -133,6 +152,20 @@ export default function Login() {
             </p>
           </div>
         </motion.div>
+
+        {/* Video Slider Dots */}
+        <div className="absolute bottom-6 left-8 z-20 flex items-center gap-1.5">
+          {videoPaths.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setVideoIndex(idx)}
+              className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                idx === videoIndex ? "w-6 bg-orange-500" : "w-1.5 bg-white/40 hover:bg-white/70"
+              }`}
+              aria-label={`Slide ${idx + 1}`}
+            />
+          ))}
+        </div>
       </section>
 
       {/* Right Side: Enhanced Premium Login Form Container */}
@@ -221,7 +254,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 transition-colors p-1"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500 transition-colors p-1 cursor-pointer"
                 >
                   {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
                 </button>
