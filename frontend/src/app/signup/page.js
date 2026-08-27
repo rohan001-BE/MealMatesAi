@@ -106,6 +106,8 @@ export default function Signup() {
       console.error("Google Signup Error:", error);
       if (error?.code === "auth/unauthorized-domain") {
         toast.error("Domain not authorized in Firebase! Add your Cloudflare domain in Firebase Console > Authentication > Settings > Authorized domains.");
+      } else if (error?.code === "auth/invalid-continue-uri" || error?.code === "auth/operation-not-allowed") {
+        toast.error("Google Sign-In is not enabled yet in Firebase! Please go to Firebase Console > Authentication > Sign-in method > Enable Google.");
       } else if (error?.code === "auth/popup-closed-by-user") {
         toast.info("Google signup cancelled.");
       } else if (error?.code === "auth/popup-blocked") {

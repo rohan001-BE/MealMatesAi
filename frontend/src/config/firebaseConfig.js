@@ -19,11 +19,10 @@ try {
   app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
   auth = getAuth(app);
   provider = new GoogleAuthProvider();
-  provider.setCustomParameters({
-    prompt: "select_account",
-  });
+  provider.addScope("email");
+  provider.addScope("profile");
 } catch (e) {
   console.warn("Firebase client initialization warning:", e);
 }
 
-export { auth, provider, signInWithPopup };
+export { auth, provider, signInWithPopup, GoogleAuthProvider };
