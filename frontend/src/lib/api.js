@@ -7,12 +7,26 @@ const baseURL =
 
 const api = axios.create({
   baseURL,
+  timeout: 25000,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Request Interceptor: Attach JWT Authorization Header
+// High-speed In-Memory Cache with TTL for Static and Catalog Data
+const memoryCache = new Map();
+const CACHE_TTL_MS = 3 * 60 * 1000; // 3 minutes
+
+const isCacheableUrl = (url) => {
+  if (!url) return false;
+  return (
+    url.includes("/recipes/all") ||
+    url.includes("/feedback/all") ||
+    url.includes("/ingredients/search")
+  );
+};
+
+// Request Interceptor: Attach JWT Authorization Header & check cache
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
@@ -88,6 +102,21 @@ api.interceptors.request.use(
       }
     }
 
+    // In-memory cache hit for GET
+    if (config.method === "get" && isCacheableUrl(url)) {
+      const cached = memoryCache.get(url);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+        config.adapter = () =>
+          Promise.resolve({
+            data: JSON.parse(JSON.stringify(cached.data)),
+            status: 200,
+            statusText: "OK (Cached)",
+            headers: config.headers,
+            config,
+          });
+      }
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -140,6 +169,14 @@ api.interceptors.response.use(
 
       // 2. Normalize recipes structure
       deepNormalizeRecipes(response.data);
+
+      // Save to memory cache if eligible
+      if (response.config && response.config.method === "get" && isCacheableUrl(response.config.url)) {
+        memoryCache.set(response.config.url, {
+          data: response.data,
+          timestamp: Date.now(),
+        });
+      }
 
       // Check for singular generated/regenerated plan format
       if (response.data.days && !response.data.mealPlan) {
