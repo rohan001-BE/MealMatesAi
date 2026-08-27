@@ -1,0 +1,190 @@
+import datetime
+from typing import Dict, Any, Optional
+from fastapi import HTTPException, status
+from google.cloud.firestore import FieldFilter
+from app.core.firebase import db
+from app.core.security import hash_password, verify_password, create_access_token
+from app.schemas.auth import UserSignupRequest, UserLoginRequest, GoogleAuthRequest, AuthResponse, UserOut
+
+class AuthService:
+    def __init__(self):
+        self.users_ref = db.collection("users")
+
+    def signup(self, req: UserSignupRequest) -> AuthResponse:
+        # Check if email exists
+        email_query = self.users_ref.where(filter=FieldFilter("email", "==", req.email.lower())).limit(1).get()
+        if len(email_query) > 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="An account with this email already exists."
+            )
+
+        # Check if username exists
+        user_query = self.users_ref.where(filter=FieldFilter("username", "==", req.username)).limit(1).get()
+        if len(user_query) > 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username is already taken. Please choose another."
+            )
+
+        hashed_pwd = hash_password(req.password)
+        now_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+        new_user_data = {
+            "username": req.username,
+            "email": req.email.lower(),
+            "passwordHash": hashed_pwd,
+            "profileImage": "",
+            "isGoogleUser": False,
+            "createdAt": now_str,
+            "updatedAt": now_str,
+            "age": None,
+            "gender": None,
+            "weight": None,
+            "height": None,
+            "activityLevel": "moderate",
+            "weightGoal": "weight_loss",
+            "dietaryType": "balanced",
+            "mealType": ["breakfast", "lunch", "dinner"],
+            "dailyCalories": None,
+            "customMeals": []
+        }
+
+        doc_ref = self.users_ref.document()
+        doc_ref.set(new_user_data)
+        user_id = doc_ref.id
+
+        token = create_access_token({"_id": user_id, "email": req.email.lower(), "username": req.username})
+
+        user_out = UserOut(
+            id=user_id,
+            username=req.username,
+            email=req.email.lower(),
+            profileImage="",
+            isGoogleUser=False,
+            createdAt=now_str
+        )
+
+        return AuthResponse(
+            success=True,
+            message="User registered successfully.",
+            token=token,
+            user=user_out
+        )
+
+    def login(self, req: UserLoginRequest) -> AuthResponse:
+        query = self.users_ref.where(filter=FieldFilter("email", "==", req.email.lower())).limit(1).get()
+        if len(query) == 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid email or password."
+            )
+
+        user_doc = query[0]
+        user_data = user_doc.to_dict()
+        user_id = user_doc.id
+
+        if user_data.get("isGoogleUser") and not user_data.get("passwordHash"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This account was registered with Google. Please use Google Login."
+            )
+
+        if not verify_password(req.password, user_data.get("passwordHash", "")):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid email or password."
+            )
+
+        token = create_access_token({
+            "_id": user_id,
+            "email": user_data.get("email"),
+            "username": user_data.get("username")
+        })
+
+        user_out = UserOut(
+            id=user_id,
+            username=user_data.get("username", ""),
+            email=user_data.get("email", ""),
+            profileImage=user_data.get("profileImage", ""),
+            isGoogleUser=user_data.get("isGoogleUser", False),
+            createdAt=user_data.get("createdAt")
+        )
+
+        return AuthResponse(
+            success=True,
+            message="Login successful.",
+            token=token,
+            user=user_out
+        )
+
+    def google_auth(self, req: GoogleAuthRequest) -> AuthResponse:
+        email_clean = req.email.lower()
+        query = self.users_ref.where(filter=FieldFilter("email", "==", email_clean)).limit(1).get()
+        now_str = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+        if len(query) > 0:
+            # Existing user: update google avatar if none exists or updated
+            user_doc = query[0]
+            user_id = user_doc.id
+            user_data = user_doc.to_dict()
+            
+            updates = {"updatedAt": now_str}
+            if req.photoURL and (not user_data.get("profileImage") or user_data.get("isGoogleUser")):
+                updates["profileImage"] = req.photoURL
+            
+            user_doc.reference.update(updates)
+            user_data.update(updates)
+        else:
+            # Create new user for Google login
+            base_username = req.displayName.replace(" ", "_").lower() if req.displayName else email_clean.split("@")[0]
+            # Ensure unique username
+            username = f"{base_username}_{datetime.datetime.now().strftime('%M%S')}"
+
+            user_data = {
+                "username": username,
+                "email": email_clean,
+                "passwordHash": "",
+                "profileImage": req.photoURL or "",
+                "isGoogleUser": True,
+                "createdAt": now_str,
+                "updatedAt": now_str,
+                "age": None,
+                "gender": None,
+                "weight": None,
+                "height": None,
+                "activityLevel": "moderate",
+                "weightGoal": "weight_loss",
+                "dietaryType": "balanced",
+                "mealType": ["breakfast", "lunch", "dinner"],
+                "dailyCalories": None,
+                "customMeals": []
+            }
+
+            doc_ref = self.users_ref.document()
+            doc_ref.set(user_data)
+            user_id = doc_ref.id
+
+        token = create_access_token({
+            "_id": user_id,
+            "email": email_clean,
+            "username": user_data.get("username", "")
+        })
+
+        user_out = UserOut(
+            id=user_id,
+            username=user_data.get("username", ""),
+            email=email_clean,
+            profileImage=user_data.get("profileImage", ""),
+            isGoogleUser=True,
+            createdAt=user_data.get("createdAt")
+        )
+
+        return AuthResponse(
+            success=True,
+            message="Google authentication successful.",
+            token=token,
+            user=user_out
+        )
+
+auth_service = AuthService()

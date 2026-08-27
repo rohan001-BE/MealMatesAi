@@ -1,0 +1,46 @@
+# Root Gitignore for Meal Mate AI
+
+# Node & Frontend
+**/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# Python & Backend
+**/__pycache__/
+**/*.py[cod]
+backend/.venv/
+backend/venv/
+backend/ENV/
+backend/env/
+backend/*.sqlite3
+backend/*.log
+backend/htmlcov/
+backend/.pytest_cache/
+
+# Sensitive Environment Variables & API Keys
+**/.env
+**/.env.*
+**/.env.local
+**/.env.development.local
+**/.env.production.local
+**/*.env
+*.env
+
+# Firebase Service Accounts & Private Keys
+**/*firebase*.json
+**/*-adminsdk-*.json
+**/*credentials*.json
+**/*service_account*.json
+**/*.pem
+**/*.key
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
