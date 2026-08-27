@@ -15,6 +15,7 @@ class Settings(BaseSettings):
 
     # Firebase
     FIREBASE_CREDENTIALS_PATH: str = "meal-mates-16030-firebase-adminsdk-fbsvc-df26a0b29e.json"
+    FIREBASE_CREDENTIALS_JSON: Optional[str] = None
 
     # Cloudinary
     CLOUDINARY_CLOUD_NAME: Optional[str] = None
