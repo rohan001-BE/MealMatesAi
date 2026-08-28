@@ -16,11 +16,13 @@ You provide detailed, friendly, and scientifically sound guidance on healthy rec
 Keep answers concise, actionable, and encouraging. Focus strictly on food, health, diet, and nutrition topics."""
 }
 
-VALID_MODELS = [
+MODELS_ORDER = [
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.8-27b",
+    "groq/compound",
     "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
-    "mixtral-8x7b-32768",
-    "gemma2-9b-it"
+    "llama-3.1-8b-instant"
 ]
 
 class GroqService:
@@ -31,7 +33,7 @@ class GroqService:
     def _get_http_client(self) -> httpx.AsyncClient:
         if self._http_client is None or self._http_client.is_closed:
             self._http_client = httpx.AsyncClient(
-                timeout=httpx.Timeout(25.0, connect=5.0),
+                timeout=httpx.Timeout(30.0, connect=6.0),
                 limits=httpx.Limits(max_keepalive_connections=20, max_connections=50),
                 http2=True
             )
@@ -83,19 +85,16 @@ class GroqService:
 
         # Format for Groq OpenAI-compatible API
         groq_payload_messages = [SYSTEM_PROMPT]
-        for m in messages_list[-8:]:  # Keep recent context window for fast latency
+        for m in messages_list[-10:]:  # Keep rich conversation history context
             role = "assistant" if m.get("role") in ["bot", "assistant"] else "user"
             groq_payload_messages.append({"role": role, "content": m.get("content", "")})
 
         client = self._get_http_client()
         bot_reply = None
 
-        # Determine model to use
-        requested_model = settings.GROQ_MODEL
-        if not requested_model or requested_model not in VALID_MODELS:
-            requested_model = "llama-3.3-70b-versatile"
-
-        models_to_try = [requested_model, "llama-3.1-8b-instant"]
+        # Build model fallback list starting with preferred configured model
+        preferred_model = settings.GROQ_MODEL or "openai/gpt-oss-120b"
+        models_to_try = [preferred_model] + [m for m in MODELS_ORDER if m != preferred_model]
 
         for model_name in models_to_try:
             try:
@@ -109,7 +108,7 @@ class GroqService:
                         "model": model_name,
                         "messages": groq_payload_messages,
                         "temperature": 0.7,
-                        "max_tokens": 800
+                        "max_tokens": 1000
                     }
                 )
 
@@ -118,7 +117,7 @@ class GroqService:
                     bot_reply = data["choices"][0]["message"]["content"]
                     break
                 else:
-                    print(f"[Groq API] Model {model_name} returned status {response.status_code}: {response.text}")
+                    print(f"[Groq API] Model {model_name} failed ({response.status_code}): {response.text}")
             except Exception as e:
                 print(f"[Groq API] Exception with model {model_name}: {e}")
 
