@@ -1,0 +1,21 @@
+# Meal Mates AI
+
+> Meal Mates AI is an intelligent nutritional planning and personalized dietary platform customized for Pakistani lifestyle, traditional cuisine, and fitness goals.
+
+## Core Features & AI Systems
+
+- [AI Meal Planner](https://mealmatesai.pages.dev/meal-planner): Multi-day combinatorial meal planner calibrating calories, macronutrients, and custom meal slots.
+- [650+ Recipe Catalog](https://mealmatesai.pages.dev/recipes): Nutritional database of South Asian and Pakistani dishes with protein, carb, fat, and sodium breakdown.
+- [Calorie & Macro Calculator](https://mealmatesai.pages.dev/calories-application): Biometric calculator estimating BMR, TDEE, and daily caloric deficit/surplus goals.
+- [AI Nutritionist Chatbot](https://mealmatesai.pages.dev/chatbot): Real-time conversational LLM assistant providing dietary advice, ingredient swaps, and recipe insights.
+- [Custom Category Planner](https://mealmatesai.pages.dev/custom-category): Allergy, restriction, and macro-targeted meal suggestions.
+- [Grocery Store & Ingredients](https://mealmatesai.pages.dev/ingredients): Curated healthy food items and grocery discovery.
+
+## Company & Support
+
+- [About Meal Mates AI](https://mealmatesai.pages.dev/about): Mission, architecture, and engineering overview.
+- [Community Reviews](https://mealmatesai.pages.dev/reviews): Verified member reviews and testimonials.
+- [Help & FAQ](https://mealmatesai.pages.dev/help): Frequently asked questions and usage guides.
+- [Contact Support](https://mealmatesai.pages.dev/contact): Support channels and inquiries.
+- [Privacy Policy](https://mealmatesai.pages.dev/privacy): User privacy and data protection guidelines.
+- [Terms of Use](https://mealmatesai.pages.dev/terms): Platform terms of service.
